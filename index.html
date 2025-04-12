@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BioAI Platform | AI-Powered Bioinformatics Research</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ngl@0.10.4/dist/ngl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <style>
+        /* Custom Styles */
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #4f46e5;
+            --tertiary-color: #4338ca;
+            --accent-color: #818cf8;
+            --bg-color: #f3f4f6;
+            --glass-bg: rgba(255, 255, 255, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.18);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        /* Glassmorphism */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+        
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Animations */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(241, 245, 249, 0.8);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 4px;
+        }
+        
+        /* 3D Viewer Styles */
+        .structure-viewer {
+            width: 100%;
+            height: 400px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        /* Progress indicator */
+        .progress-step {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .progress-step::before {
+            content: '';
+            position: absolute;
+            height: 100%;
+            width: 2px;
+            background-color: var(--accent-color);
+            left: 14px;
+            top: 10px;
+            z-index: -1;
+        }
+        
+        .progress-step:last-child::before {
+            display: none;
+        }
+        
+        /* Tabs */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        /* DNA Helix Animation */
+        .dna-animation {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.15;
+            z-index: -1;
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #1f2937;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.75rem;
+        }
+        
+        /* Confidence meter */
+        .confidence-meter {
+            height: 10px;
+            background: linear-gradient(to right, #ef4444, #f59e0b, #10b981);
+            border-radius: 5px;
+            position: relative;
+        }
+        
+        .confidence-indicator {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border: 2px solid #1f2937;
+            border-radius: 50%;
+            top: -2px;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <!-- Header -->
+    <header class="py-6">
+        <div class="container mx-auto px-6">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800">BioAI Platform</h1>
+                </div>
+                
+                <nav class="hidden md:flex items-center space-x-8">
+                    <a href="#features" class="text-gray-600 hover:text-indigo-600 transition-colors">Features</a>
+                    <a href="#protein-analysis" class="text-gray-600 hover:text-indigo-600 transition-colors">Protein Analysis</a>
+                    <a href="#research" class="text-gray-600 hover:text-indigo-600 transition-colors">Research</a>
+                    <a href="#bioinformatics" class="text-gray-600 hover:text-indigo-600 transition-colors">Toolkit</a>
+                </nav>
+                
+                <div class="flex items-center space-x-4">
+                    <button class="px-4 py-2 rounded-lg text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all font-medium">Sign In</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="relative py-16">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h2 class="text-4xl md:text-5xl font-bold leading-tight mb-6">
+                        AI-Powered <span class="text-indigo-600">Bioinformatics</span> Research Platform
+                    </h2>
+                    <p class="text-lg text-gray-600 mb-8">
+                        Harness the power of AlphaFold and OpenAI to revolutionize your protein structure analysis and research insights with our advanced bioinformatics platform.
+                    </p>
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                        <button class="px-8 py-3 rounded-lg text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all font-medium shadow-lg">
+                            Get Started
+                        </button>
+                        <button class="px-8 py-3 rounded-lg border border-indigo-500 text-indigo-500 hover:bg-indigo-50 transition-all font-medium">
+                            Learn More
+                        </button>
+                    </div>
+                </div>
+                <div class="md:w-1/2 relative">
+                    <div class="glass p-2 rounded-3xl shadow-xl">
+                        <div class="rounded-2xl overflow-hidden">
+                            <img src="https://cdn.jsdelivr.net/gh/bioai-images/protein-structures@main/protein-visualization.jpg" alt="3D Protein Structure Visualization" class="w-full h-auto">
+                        </div>
+                    </div>
+                    <div class="absolute -right-4 -bottom-4 glass p-4 rounded-xl shadow-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">AlphaFold Integration</p>
+                                <p class="text-xs text-gray-500">Advanced 3D Analysis</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute -left-4 top-1/4 glass p-4 rounded-xl shadow-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium">OpenAI Research</p>
+                                <p class="text-xs text-gray-500">Literature Analysis</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">Powerful Features</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                    Our platform combines cutting-edge AI technologies to provide comprehensive insights for your bioinformatics research.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Feature 1 -->
+                <div class="glass p-8 rounded-xl fade-in transition-all duration-300 hover:shadow-xl">
+                    <div class="h-14 w-14 rounded-full bg-indigo-100 flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Protein Structure Analysis</h3>
+                    <p class="text-gray-600 mb-4">
+                        Upload protein sequences or FASTA files for instant 3D structure prediction using AlphaFold integration.
+                    </p>
+                    <ul class="space-y-2 mb-4">
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm">Interactive 3D visualization</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm">Domain and motif analysis</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm">Stability and binding site prediction</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="glass p-8 rounded-xl fade-in transition-all duration-300 hover:shadow-xl">
+                    <div class="h-14 w-14 rounded-full bg-purple-100 flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Research & Literature Analysis</h3>
+                    <p class="text-gray-600 mb-4">
+                        Leverage OpenAI to analyze research papers relevant to your protein sequences and generate insights.
+                    </p>
+                    <ul class="space-y-2 mb-4">
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm">Automated literature review</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm">Key findings summarization</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm">AI-powered hypothesis generation</span>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="glass p-8 rounded-xl fade-in transition-all duration-300 hover:shadow-xl">
+                    <div class="h-14 w-14 rounded-full bg-blue-100 flex items-center justify-center mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">Advanced Bioinformatics Toolkit</h3>
+                    <p class="text-gray-600 mb-4">
+                        Comprehensive suite of bioinformatics tools for in-depth analysis of protein structures and functions.
+                    </p>
+                    <ul class="space-y-2 mb-4">
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm">Mutation impact prediction</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm">Drug binding simulation</span>
+                        </li>
+                        <li class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-sm">Subcellular localization prediction</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Protein Analysis Section -->
+    <section id="protein-analysis" class="py-16">
+        <div class="container mx-auto px-6">
+            <div class="flex flex-col lg:flex-row">
+                <div class="lg:w-1/2 mb-10 lg:mb-0 lg:pr-10">
+                    <h2 class="text-3xl font-bold mb-6">Protein Structure Analysis</h2>
+                    <p class="text-lg text-gray-600 mb-8">
+                        Upload your protein sequence or FASTA file to get detailed 3D structure analysis powered by AlphaFold integration.
+                    </p>
+                    
+                    <div class="glass p-6 rounded-xl mb-8">
+                        <h3 class="text-xl font-semibold mb-4">Input Protein Sequence</h3>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Enter protein sequence or upload FASTA file</label>
+                            <textarea
+                                class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                rows="4"
+                                placeholder="MVLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGHGKKVADALTN..."
+                            ></textarea>
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Or upload FASTA file</label>
+                            <div class="flex items-center justify-center w-full">
+                                <label class="flex flex-col w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <div class="flex flex-col items-center justify-center pt-7">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-gray-400 group-hover:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                        </svg>
+                                        <p class="pt-1 text-sm tracking-wider text-gray-400 group-hover:text-gray-600">
+                                            Upload a file
+                                        </p>
+                                    </div>
+                                    <input type="file" class="opacity-0" />
+                                </label>
+                            </div>
+                        </div>
+                        <button class="w-full px-4 py-2 rounded-lg text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all font-medium">
+                            Analyze Structure
+                        </button>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4">Analysis Options</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center">
+                                <input id="domains" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="domains" class="ml-2 block text-sm text-gray-700">Domain Analysis</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="binding" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="binding" class="ml-2 block text-sm text-gray-700">Binding Site Prediction</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="stability" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="stability" class="ml-2 block text-sm text-gray-700">Stability Analysis</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="motifs" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="motifs" class="ml-2 block text-sm text-gray-700">Conserved Motif Detection</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="lg:w-1/2">
+                    <div class="glass p-6 rounded-xl mb-8">
+                        <h3 class="text-xl font-semibold mb-4">3D Structure Visualization</h3>
+                        <div class="structure-viewer mb-4 bg-gray-100 flex items-center justify-center">
+                            <div class="text-center text-gray-500">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                                </svg>
+                                <p class="text-lg font-medium">3D visualization will appear here</p>
+                                <p class="text-sm">Submit a protein sequence to visualize its structure</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between mb-6">
+                            <button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-medium">
+                                <i class="fas fa-undo mr-2"></i> Reset View
+                            </button>
+                            <div class="flex space-x-2">
+                                <button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-medium tooltip">
+                                    <i class="fas fa-ribbon"></i>
+                                    <span class="tooltip-text">Ribbon View</span>
+                                </button>
+                                <button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-medium tooltip">
+                                    <i class="fas fa-atom"></i>
+                                    <span class="tooltip-text">Ball & Stick View</span>
+                                </button>
+                                <button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-medium tooltip">
+                                    <i class="fas fa-cube"></i>
+                                    <span class="tooltip-text">Surface View</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="border-t border-gray-200 pt-4">
+                            <h4 class="font-medium text-sm text-gray-700 mb-2">Prediction Confidence</h4>
+                            <div class="flex items-center space-x-3">
+                                <span class="text-xs text-gray-500">Low</span>
+                                <div class="confidence-meter flex-grow">
+                                    <div class="confidence-indicator" style="left: 85%;"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">High</span>
+                            </div>
+                            <p class="text-right text-sm text-gray-600 mt-1">85% Confidence</p>
+                        </div>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4">Structure Properties</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-700">Domains</h4>
+                                <p class="text-gray-500">3 domains identified</p>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-700">Binding Sites</h4>
+                                <p class="text-gray-500">2 potential sites</p>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-700">Stability Score</h4>
+                                <p class="text-gray-500">76.2 (Stable)</p>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-medium text-gray-700">Residues</h4>
+                                <p class="text-gray-500">287 total</p>
+                            </div>
+                        </div>
+                        <button class="w-full px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-medium">
+                            Download Full Report
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Research Analysis Section -->
+    <section id="research" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">Research & Literature Analysis</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                    Leverage OpenAI's powerful capabilities to analyze relevant research papers, extract key findings, and generate scientific hypotheses.
+                </p>
+            </div>
+            
+            <div class="glass p-8 rounded-xl mb-12">
+                <div class="flex flex-col md:flex-row">
+                    <div class="md:w-1/2 md:pr-8 mb-8 md:mb-0">
+                        <h3 class="text-xl font-semibold mb-4">Research Query</h3>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Enter your research question</label>
+                            <textarea
+                                class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                rows="3"
+                                placeholder="What are the latest findings on hemoglobin mutations and their effects on oxygen binding?"
+                            ></textarea>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Include protein context</label>
+                            <div class="flex items-center">
+                                <input id="protein-context" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="protein-context" class="ml-2 block text-sm text-gray-700">Use current protein sequence as context</label>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Date range</label>
+                            <div class="flex space-x-4">
+                                <div class="w-1/2">
+                                    <input type="text" placeholder="From: 2020" class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div class="w-1/2">
+                                    <input type="text" placeholder="To: Present" class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Analysis type</label>
+                            <select class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option>Comprehensive Literature Review</option>
+                                <option>Key Findings Summary</option>
+                                <option>Research Trends Analysis</option>
+                                <option>Hypothesis Generation</option>
+                                <option>Drug Interaction Analysis</option>
+                            </select>
+                        </div>
+                        <button class="w-full px-4 py-2 rounded-lg text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all font-medium">
+                            Analyze Research Literature
+                        </button>
+                    </div>
+                    
+                    <div class="md:w-1/2 md:border-l md:pl-8 border-gray-200">
+                        <h3 class="text-xl font-semibold mb-4">Information Sources</h3>
+                        <div class="space-y-3 mb-6">
+                            <div class="flex items-center">
+                                <input id="pubmed" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="pubmed" class="ml-2 block text-sm text-gray-700">PubMed Database</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="biorxiv" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="biorxiv" class="ml-2 block text-sm text-gray-700">bioRxiv Preprints</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="uniprot" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                <label for="uniprot" class="ml-2 block text-sm text-gray-700">UniProt Database</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="patents" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                <label for="patents" class="ml-2 block text-sm text-gray-700">Patent Databases</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input id="clinical" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                <label for="clinical" class="ml-2 block text-sm text-gray-700">Clinical Trials</label>
+                            </div>
+                        </div>
+                        
+                        <h3 class="text-xl font-semibold mb-4">AI Insights Configuration</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Analysis depth</label>
+                                <input type="range" min="1" max="5" value="3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>Quick</span>
+                                    <span>Standard</span>
+                                    <span>Deep</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Citation threshold</label>
+                                <select class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option>All papers regardless of citations</option>
+                                    <option>At least 5 citations</option>
+                                    <option>At least 20 citations</option>
+                                    <option>At least 50 citations</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Output format</label>
+                                <select class="w-full px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option>Detailed report with citations</option>
+                                    <option>Executive summary</option>
+                                    <option>Bullet points of key findings</option>
+                                    <option>Comparative analysis table</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Literature Analysis Results -->
+                <div class="glass p-8 rounded-xl">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Literature Analysis
+                    </h3>
+                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                        <p class="text-gray-500 italic mb-2">Sample query results:</p>
+                        <h4 class="font-medium mb-2">Recent findings on hemoglobin mutations and oxygen binding</h4>
+                        <p class="text-sm text-gray-600 mb-3">
+                            Analysis based on 127 papers published between 2020-2025
+                        </p>
+                        <div class="mb-3">
+                            <h5 class="text-sm font-medium mb-1">Key Findings:</h5>
+                            <p class="text-sm text-gray-600">
+                                Recent studies have identified 3 novel mutations in the hemoglobin beta chain that significantly alter oxygen binding affinity. The E101K mutation shows a 2.4x increase in oxygen affinity, potentially leading to hypoxia in affected tissues. Computational models suggest this occurs due to conformational changes in the heme pocket.
+                            </p>
+                        </div>
+                        <div class="mb-3">
+                            <h5 class="text-sm font-medium mb-1">Research Trends:</h5>
+                            <p class="text-sm text-gray-600">
+                                There's growing interest in using AlphaFold-predicted structures to better understand the molecular mechanisms of hemoglobinopathies. 43% of recent papers utilize AI-based structural analysis, compared to just 8% in 2020.
+                            </p>
+                        </div>
+                        <div>
+                            <h5 class="text-sm font-medium mb-1">Top Cited Paper:</h5>
+                            <p class="text-sm text-gray-600">
+                                "Molecular Mechanisms of Novel Hemoglobin Mutations Affecting Oxygen Transport" (Zhang et al., 2023) - 87 citations
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-medium">
+                            View Full Analysis
+                        </button>
+                        <button class="px-4 py-2 rounded-lg border border-indigo-500 text-indigo-500 hover:bg-indigo-50 transition-all font-medium">
+                            Download Report
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- AI-Generated Hypotheses -->
+                <div class="glass p-8 rounded-xl">
+                    <h3 class="text-xl font-semibold mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        AI-Generated Hypotheses
+                    </h3>
+                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                        <p class="text-gray-500 italic mb-2">Sample AI insights:</p>
+                        <div class="space-y-4">
+                            <div>
+                                <h5 class="text-sm font-medium mb-1">Hypothesis 1:</h5>
+                                <p class="text-sm text-gray-600">
+                                    The E101K mutation may interact with the 2,3-BPG binding site indirectly through allosteric effects, potentially offering a novel therapeutic target for hemoglobinopathies.
+                                </p>
+                                <div class="flex mt-1">
+                                    <span class="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">Confidence: 78%</span>
+                                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded ml-2">Supporting papers: 7</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="text-sm font-medium mb-1">Hypothesis 2:</h5>
+                                <p class="text-sm text-gray-600">
+                                    Small molecule stabilizers targeting the interface between alpha and beta subunits could potentially restore normal oxygen affinity in E101K mutants without affecting other hemoglobin functions.
+                                </p>
+                                <div class="flex mt-1">
+                                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Confidence: 64%</span>
+                                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded ml-2">Supporting papers: 3</span>
+                                </div>
+                            </div>
+                            <div>
+                                <h5 class="text-sm font-medium mb-1">Hypothesis 3:</h5>
+                                <p class="text-sm text-gray-600">
+                                    The computational models suggest that designing peptides mimicking regions of the gamma chain could potentially modulate oxygen binding in mutant adult hemoglobin.
+                                </p>
+                                <div class="flex mt-1">
+                                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Confidence: 59%</span>
+                                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded ml-2">Supporting papers: 2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between">
+                        <button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-medium">
+                            Generate More Hypotheses
+                        </button>
+                        <button class="px-4 py-2 rounded-lg border border-purple-500 text-purple-500 hover:bg-purple-50 transition-all font-medium">
+                            Explore Drug Interactions
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bioinformatics Toolkit Section -->
+    <section id="bioinformatics" class="py-16">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">Advanced Bioinformatics Toolkit</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                    Comprehensive suite of advanced tools for protein analysis, mutation impact prediction, and drug interaction simulation.
+                </p>
+            </div>
+            
+            <!-- Toolkit Tabs -->
+            <div class="mb-12">
+                <div class="flex flex-wrap border-b border-gray-200">
+                    <button class="tab-button px-6 py-3 font-medium text-indigo-600 border-b-2 border-indigo-600" data-tab="mutation">
+                        Mutation Impact
+                    </button>
+                    <button class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700" data-tab="domains">
+                        Domain Analysis
+                    </button>
+                    <button class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700" data-tab="docking">
+                        Drug Docking
+                    </button>
+                    <button class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700" data-tab="localization">
+                        Subcellular Localization
+                    </button>
+                </div>
+                
+                <!-- Tab Content -->
+                <div class="py-8">
+                    <!-- Mutation Impact Tab -->
+                    <div id="mutation-tab" class="tab-content active">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div class="glass p-6 rounded-xl">
+                                <h3 class="text-xl font-semibold mb-4">Mutation Analysis</h3>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Select or enter mutations</label>
+                                    <div class="flex space-x-2 mb-3">
+                                        <input type="text" placeholder="E101K" class="flex-grow px-3 py-2 text-gray-700 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        <button class="px-4 py-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-all font-medium">
+                                            Add
+                                        </button>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 mb-4">
+                                        <span class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm flex items-center">
+                                            E101K
+                                            <button class="ml-2 text-indigo-400 hover:text-indigo-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </span>
+                                        <span class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm flex items-center">
+                                            H92Q
+                                            <button class="ml-2 text-indigo-400 hover:text-indigo-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </span>
+                                        <span class="px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 text-sm flex items-center">
+                                            V143A
+                                            <button class="ml-2 text-indigo-400 hover:text-indigo-600">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Analysis type</label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div class="flex items-center">
+                                            <input id="stability-impact" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                            <label for="stability-impact" class="ml-2 block text-sm text-gray-700">Stability Impact</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input id="binding-impact" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                            <label for="binding-impact" class="ml-2 block text-sm text-gray-700">Binding Affinity</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input id="pathogenicity" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" checked>
+                                            <label for="pathogenicity" class="ml-2 block text-sm text-gray-700">Pathogenicity</label>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <input id="conservation" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                            <label for="conservation" class="ml-2 block text-sm text-gray-700">Conservation Analysis</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="w-full px-4 py-2 rounded-lg text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all font-medium">
+                                    Predict Impact
+                                </button>
+                            </div>
+                            
+                            <div class="glass p-6 rounded-xl">
+                                <h3 class="text-xl font-semibold mb-4">Mutation Impact Results</h3>
+                                <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                                    <h4 class="font-medium mb-3">E101K Mutation Analysis</h4>
+                                    <div class="space-y-4">
+                                        <div>
+                                            <div class="flex justify-between mb-1">
+                                                <span class="text-sm font-medium">Protein Stability</span>
+                                                <span class="text-sm text-red-600">-2.3 kcal/mol</span>
+                                            </div>
+                                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                                <div class="bg-red-500 h-2 rounded-full" style="width: 75%"></div>
+                                            </div>
+                                            <p class="text-xs text-gray-500 mt-1">Moderately destabilizing</p>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between mb-1">
+                                                <span class="text-sm font-medium">Oxygen Binding Affinity</span>
+                                                <span class="text-sm text-blue-600">+1.8x</span>
+                                            </div>
+                                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                                <div class="bg-blue-500 h-2 rounded-full" style="width: 68%"></div>
+                                            </div>
+                                            <p class="text-xs text-gray-500 mt-1">Significantly increased</p>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between mb-1">
+                                                <span class="text-sm font-medium">Pathogenicity Score</span>
+                                                <span class="text-sm text-orange-600">0.78</span>
+                                            </div>
+                                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                                <div class="bg-orange-500 h-2 rounded-full" style="width: 78%"></div>
+                                            </div>
+                                            <p class="text-xs text-gray-500 mt-1">Likely pathogenic</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col sm:flex-row sm:space-x-4">
+                                    <button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-medium mb-3 sm:mb-0">
+                                        View in 3D Structure
+                                    </button>
+                                    <button class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-medium">
+                                        Export Results
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Other tabs (hidden by default) -->
+                    <div id="domains-tab" class="tab-content hidden">
+                        <div class="glass p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4">Domain Analysis Tools</h3>
+                            <p class="text-gray-600 mb-4">
+                                Analyze protein domains, predict their functions, and explore evolutionary relationships.
+                            </p>
+                            <!-- Domain analysis content would go here -->
+                            <div class="p-8 text-center text-gray-500">
+                                <p>Select a protein to begin domain analysis</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="docking-tab" class="tab-content hidden">
+                        <div class="glass p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4">Drug Docking Simulation</h3>
+                            <p class="text-gray-600 mb-4">
+                                Simulate drug binding to your protein structure and analyze binding affinity.
+                            </p>
+                            <!-- Drug docking content would go here -->
+                            <div class="p-8 text-center text-gray-500">
+                                <p>Upload a protein structure and ligand to begin docking simulation</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="localization-tab" class="tab-content hidden">
+                        <div class="glass p-6 rounded-xl">
+                            <h3 class="text-xl font-semibold mb-4">Subcellular Localization Prediction</h3>
+                            <p class="text-gray-600 mb-4">
+                                Predict the subcellular localization of your protein to understand its function.
+                            </p>
+                            <!-- Localization content would go here -->
+                            <div class="p-8 text-center text-gray-500">
+                                <p>Enter a protein sequence to predict subcellular localization</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Workflow Pipeline -->
+            <div class="glass p-8 rounded-xl mb-12">
+                <h3 class="text-xl font-semibold mb-6">Research Workflow Pipeline</h3>
+                <div class="relative">
+                    <div class="space-y-8">
+                        <div class="progress-step flex">
+                            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium">
+                                1
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-medium">Protein Structure Prediction</h4>
+                                <p class="text-gray-600">Upload sequence and predict 3D structure using AlphaFold integration</p>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-step flex">
+                            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium">
+                                2
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-medium">Structural Analysis</h4>
+                                <p class="text-gray-600">Analyze domains, binding sites, stability, and conserved motifs</p>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-step flex">
+                            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium">
+                                3
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-medium">Literature Analysis</h4>
+                                <p class="text-gray-600">OpenAI-powered analysis of relevant research papers and findings</p>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-step flex">
+                            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium">
+                                4
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-medium">Advanced Analyses</h4>
+                                <p class="text-gray-600">Mutation impact prediction, drug interactions, or other specialized analyses</p>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-step flex">
+                            <div class="flex-shrink-0 h-7 w-7 rounded-full bg-indigo-500 flex items-center justify-center text-white text-sm font-medium">
+                                5
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="text-lg font-medium">Comprehensive Reporting</h4>
+                                <p class="text-gray-600">Generate detailed reports with visualizations and insights</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sample Report -->
+            <div class="glass p-8 rounded-xl">
+                <h3 class="text-xl font-semibold mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Sample Analysis Report
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                            <h4 class="font-medium mb-3">Hemoglobin Beta (HBB) Analysis</h4>
+                            <p class="text-sm text-gray-600 mb-3">
+                                Comprehensive analysis of HBB protein structure, mutations, and research insights
+                            </p>
+                            <div class="space-y-3">
+                                <div>
+                                    <h5 class="text-sm font-medium">Structure Summary:</h5>
+                                    <p class="text-sm text-gray-600">
+                                        AlphaFold predicted structure with 92% confidence. Four alpha-helical domains identified with central heme-binding pocket.
+                                    </p>
+                                </div>
+                                <div>
+                                    <h5 class="text-sm font-medium">Mutation Analysis:</h5>
+                                    <p class="text-sm text-gray-600">
+                                        E101K mutation shows significant impact on oxygen binding affinity and protein stability.
+                                    </p>
+                                </div>
+                                <div>
+                                    <h5 class="text-sm font-medium">Research Insights:</h5>
+                                    <p class="text-sm text-gray-600">
+                                        Recent studies suggest potential for small molecule stabilizers as therapeutic approach.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="w-full px-4 py-2 rounded-lg text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all font-medium">
+                            View Sample Full Report
+                        </button>
+                    </div>
+                    <div>
+                        <img src="https://cdn.jsdelivr.net/gh/bioai-images/protein-structures@main/report-visualization.jpg" alt="Sample Report Visualization" class="w-full h-auto rounded-lg shadow-lg">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Integration and Tech Section -->
+    <section class="py-16 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">Powerful AI Integrations</h2>
+                <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                    Our platform leverages cutting-edge AI technologies to provide comprehensive bioinformatics analysis.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <!-- AlphaFold Integration -->
+                <div class="glass p-8 rounded-xl">
+                    <div class="flex items-start mb-6">
+                        <div class="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold">AlphaFold Integration</h3>
+                            <p class="text-gray-600">Advanced protein structure prediction</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-6">
+                        Our platform integrates AlphaFold, the revolutionary AI system developed by DeepMind that accurately predicts protein 3D structures from amino acid sequences with unprecedented accuracy.
+                    </p>
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-gray-600">High-confidence structure prediction</span>
+                        </div>
+                        <div class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-gray-600">Interactive 3D visualization of predicted structures</span>
+                        </div>
+                        <div class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-gray-600">Detailed confidence scoring for predictions</span>
+                        </div>
+                        <div class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-gray-600">Domain and binding site analysis</span>
+                        </div>
+                    </div>
+                    <img src="https://cdn.jsdelivr.net/gh/bioai-images/protein-structures@main/alphafold-visualization.jpg" alt="AlphaFold Protein Structure Visualization" class="w-full h-auto rounded-lg">
+                </div>
+                
+                <!-- OpenAI Integration -->
+                <div class="glass p-8 rounded-xl">
+                    <div class="flex items-start mb-6">
+                        <div class="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center mr-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold">OpenAI Integration</h3>
+                            <p class="text-gray-600">Advanced research and literature analysis</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-6">
+                        Our platform leverages OpenAI's powerful language models to analyze research papers, extract key findings, generate scientific hypotheses, and provide valuable insights for your protein research.
+                    </p>
+                    <div class="space-y-3 mb-6">
+                        <div class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-gray-600">Automated literature review and summarization</span>
+                        </div>
+                        <div class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-gray-600">Identification of research trends and key findings</span>
+                        </div>
+                        <div class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-gray-600">Generation of novel scientific hypotheses</span>
+                        </div>
+                        <div class="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500 mr-2 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span class="text-gray-600">Prediction of drug interactions and potential therapeutic approaches</span>
+                        </div>
+                    </div>
+                    <img src="https://cdn.jsdelivr.net/gh/bioai-images/protein-structures@main/research-analysis.jpg" alt="OpenAI Research Analysis" class="w-full h-auto rounded-lg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call-to-Action -->
+    <section class="py-20 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+        <div class="container mx-auto px-6 text-center">
+            <h2 class="text-3xl md:text-4xl font-bold mb-6">
+                Ready to Transform Your Bioinformatics Research?
+            </h2>
+            <p class="text-lg md:text-xl mb-10 max-w-3xl mx-auto opacity-90">
+                Join thousands of researchers using our AI-powered platform to accelerate discoveries and gain deeper insights into protein structures and functions.
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+                <button class="px-8 py-3 rounded-lg bg-white text-indigo-600 hover:bg-gray-100 transition-all font-medium text-lg shadow-lg">
+                    Get Started for Free
+                </button>
+                <button class="px-8 py-3 rounded-lg border-2 border-white text-white hover:bg-white hover:bg-opacity-10 transition-all font-medium text-lg">
+                    Request a Demo
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-12 bg-gray-800 text-gray-300">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-6">
+                        <div class="h-10 w-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            </svg>
+                        </div>
+                        <h1 class="text-xl font-bold text-white">BioAI Platform</h1>
+                    </div>
+                    <p class="mb-6">
+                        Advanced AI-Powered Bioinformatics Platform combining AlphaFold and OpenAI for comprehensive protein structure analysis and research insights.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">Features</h3>
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="#protein-analysis" class="text-gray-400 hover:text-white transition-colors">Protein Structure Analysis</a>
+                        </li>
+                        <li>
+                            <a href="#research" class="text-gray-400 hover:text-white transition-colors">Research & Literature Analysis</a>
+                        </li>
+                        <li>
+                            <a href="#bioinformatics" class="text-gray-400 hover:text-white transition-colors">Advanced Bioinformatics Tools</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Mutation Impact Prediction</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Drug Interaction Simulation</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">Resources</h3>
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Documentation</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">API Reference</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Tutorials</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Research Papers</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Community Forum</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-6">Company</h3>
+                    <ul class="space-y-3">
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">About Us</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Careers</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Blog</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
+                        </li>
+                        <li>
+                            <a href="#" class="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-12 pt-8 text-center">
+                <p>© 2025 BioAI Platform. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple tab functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons and content
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
+                        btn.classList.add('text-gray-500', 'hover:text-gray-700');
+                    });
+                    
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                        content.classList.add('hidden');
+                    });
+                    
+                    // Add active class to clicked button and corresponding content
+                    this.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
+                    this.classList.remove('text-gray-500', 'hover:text-gray-700');
+                    
+                    const tabId = this.getAttribute('data-tab');
+                    const tabContent = document.getElementById(`${tabId}-tab`);
+                    if (tabContent) {
+                        tabContent.classList.add('active');
+                        tabContent.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // Initialize NGL Viewer when available
+            if (typeof NGL !== 'undefined') {
+                // This is where we would initialize the NGL viewer for protein visualization
+                // For demonstration purposes, this is left empty
+            }
+        });
+    </script>
+</body>
+</html>
